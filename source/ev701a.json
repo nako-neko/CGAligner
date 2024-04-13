@@ -1,0 +1,41 @@
+{
+  "2.tlg": "#resource#2",
+  "3.tlg": "#resource#1",
+  "4.tlg": "#resource#0",
+  "height": 1080,
+  "layers": [{
+      "height": 108,
+      "layer_id": 4,
+      "layer_type": 0,
+      "left": 882,
+      "name": "Ac",
+      "opacity": 255,
+      "top": 142,
+      "type": 13,
+      "visible": 1,
+      "width": 156
+    },{
+      "height": 108,
+      "layer_id": 3,
+      "layer_type": 0,
+      "left": 882,
+      "name": "Ab",
+      "opacity": 255,
+      "top": 142,
+      "type": 13,
+      "visible": 1,
+      "width": 156
+    },{
+      "height": 1080,
+      "layer_id": 2,
+      "layer_type": 0,
+      "left": 0,
+      "name": "Aa",
+      "opacity": 255,
+      "top": 0,
+      "type": 13,
+      "visible": 1,
+      "width": 1920
+    }],
+  "width": 1920
+}
