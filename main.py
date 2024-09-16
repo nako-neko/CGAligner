@@ -202,7 +202,7 @@ def main(forlder_name:str,batch='n'):
         return
     # 原来的单一处理模式
     if batch=='n':
-        base_image_name = get_base_image_name()
+        base_image_name = get_base_image_name(input("请输入文件夹名称或编号，通常以ev开头，后为数字，以a结尾："))
         if not base_image_name:
             return
         # 合成过程,一次一个就行了
