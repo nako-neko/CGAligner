@@ -1,6 +1,7 @@
 import os
 import json
 from PIL import Image
+import glob
 
 
 def overlay_diff_images(base_image, diff_path, coordinate):
@@ -82,12 +83,16 @@ def process_images(base_image_path, json_path):
     print("所有差分图片处理完成！")
 
 
-def get_base_image_and_json_path(folder_name, base_image_name):
+def get_base_image_and_json_path(folder_name, base_image_name,batch = 'n'):
     """
     根据文件夹名称和基准图片名称，返回基准图片路径和 JSON 文件路径。
     """
-    base_image_path = os.path.join("source", folder_name, base_image_name)
-    json_path = os.path.join("source", f"{folder_name}.json")
+    if batch == 'n':
+        base_image_path = os.path.join("source", folder_name, base_image_name)
+        json_path = os.path.join("source", f"{folder_name}.json")
+    else:
+        base_image_path = base_image_name
+        json_path = folder_name + ".json"
 
     # 检查基准图片路径和 JSON 文件路径是否存在
     if not os.path.exists(base_image_path):
@@ -109,22 +114,33 @@ def get_base_image_and_json_path(folder_name, base_image_name):
 # # 处理图片并保存结果
 # process_images(base_image_path, json_path)
 
-def get_folder_name():
+def get_folder_name(folder_input: str,batch='n'):
     """
     获取文件夹名称，根据用户输入返回完整的文件夹名称。
     """
-    default_folder_prefix = "ev"
-    default_folder_suffix = "a"
+    # 单一处理模式
+    if batch != 'n':
+        default_folder_prefix = "ev"
+        default_folder_suffix = "a"
+        alternative_folder_suffix = "_a"
 
-    folder_input = input("请输入文件夹名称或编号：")
+    
     try:
         if folder_input.isdigit() and len(folder_input) == 3:
-            folder_name = f"{default_folder_prefix}{folder_input}{default_folder_suffix}"
+            # 先测试_a后缀
+            if batch != 'n':
+                folder_name = f"{default_folder_prefix}{folder_input}{alternative_folder_suffix}"
+                if not os.path.exists(os.path.join("source", folder_name)):
+                    # 如果_a后缀不存在，则测试默认后缀
+                    folder_name = f"{default_folder_prefix}{folder_input}{default_folder_suffix}"
+        elif batch == 'y':
+            folder_name = folder_input
+            if not os.path.exists(folder_name):
+                raise ValueError("错误：未找到对应文件夹！")
         else:
             folder_name = folder_input
-
-        if not os.path.exists(os.path.join("source", folder_name)):
-            raise ValueError("错误：未找到对应文件夹！")
+            if not os.path.exists(os.path.join("source", folder_name)):
+                raise ValueError("错误：未找到对应文件夹！")
     except ValueError as ve:
         print(ve)
         return None
@@ -136,7 +152,9 @@ def get_base_image_name():
     """
     获取基准图片名称，根据用户输入返回完整的基准图片名称。
     """
+
     default_base_image_name = "2.png"
+
 
     base_image_input = input("请输入基准图片编号（只需输入数字或带后缀的文件名，默认为\"2.png\"）：")
     try:
@@ -153,24 +171,61 @@ def get_base_image_name():
         return None
 
     return base_image_name
+def batch_get_base_image_name(folder_path):
+    # 获取文件夹下的所有png图片
+    png_files = glob.glob(os.path.join(folder_path, '*.png'))
 
+    # 获取图片大小
+    sizes = [(os.path.getsize(img), Image.open(img).size) for img in png_files]
+    imginfo = {}
+    # 找出文件大小最大的图片和比它小0.1MB（含0.1MB）的文件
+    for image in png_files:
+        size = os.path.getsize(image)
+        imginfo[image] = size
+    
+    threshold = max(imginfo.values()) -102400
+    final = {k: v for k, v in imginfo.items() if v >= threshold}
+    print("最终筛选结果：")
+    print(final)
 
-def main():
+    # 返回结果
+    return list(final.keys())
+
+def main(forlder_name:str,batch='n'):
     """
     主函数，用于处理图片。
+    魔改后，可以处理单个文件夹，但是可以自动合成多基底图片文件夹
     """
-    folder_name = get_folder_name()
+    # 一次处理一个文件夹，所以一次出一个文件夹
+    folder_name = get_folder_name(forlder_name,batch='y')
     if not folder_name:
         return
-
-    base_image_name = get_base_image_name()
-    if not base_image_name:
-        return
-
-    base_image_path, json_path = get_base_image_and_json_path(folder_name, base_image_name)
-    if base_image_path and json_path:
-        process_images(base_image_path, json_path)
+    # 原来的单一处理模式
+    if batch=='n':
+        base_image_name = get_base_image_name()
+        if not base_image_name:
+            return
+        # 合成过程,一次一个就行了
+        base_image_path, json_path = get_base_image_and_json_path(folder_name, base_image_name)
+        if base_image_path and json_path:
+            process_images(base_image_path, json_path)
+    # 批量处理模式
+    elif batch=='y':
+        pnglist = batch_get_base_image_name(folder_name)
+        for i in pnglist:
+            base_image_path, json_path = get_base_image_and_json_path(folder_name, i,batch='y')
+            if base_image_path and json_path:
+                process_images(base_image_path, json_path)
+    
 
 
 if __name__ == "__main__":
-    main()
+    batch = input("是否批量处理？(y/n)")
+    if batch == "y":
+        # 获取当前目录下的子文件夹列表（evXXXa or evXXX_a）
+        subfolders = [f.path for f in os.scandir('.\\source') if f.is_dir()]    
+        print("待处理文件夹列表："+str(subfolders))
+        for folder in subfolders:
+            main(folder,batch='y')
+    else:
+         main(str(input("请输入文件夹名称：")))
