@@ -184,26 +184,31 @@ def batch_get_base_image_name(folder_path):
     for image in png_files:
         size = os.path.getsize(image)
         imgsize = Image.open(image).size
-        # 目前没有竖版
-        if imgsize !=(1920,1080):
+        # 对于非FHDCG图片，设定判定阈值为1024
+        if imgsize !=(1920,1080) and max(imgsize) < 1024:
             once_noFHD = True
             non_FHDimagescount += 1
             continue
-        elif not once_noFHD:
+        elif not once_noFHD :
             #万一呢？全是FHD图片，则记录图片大小
             imginfo[image] = size
-        elif imgsize == (1920,1080):
+        elif imgsize == (1920,1080) or max(imgsize)>= 1024:
             # 差分图片不是全高清的那就把全部的全高清都留下来
             FHDimages.append(image)
             # 差分小图片小于一定比例则触发二次筛选
             nFHDimagespercent = non_FHDimagescount / len(png_files)        
     # 这种情况再某些柚子游戏里出现，差分基底全部都是FHD的图片
-    if once_noFHD == True and nFHDimagespercent < 0.3:
-        threshold = max(imginfo.values()) -102400
-        final = {k: v for k, v in imginfo.items() if v >= threshold}
-        print("最终筛选结果：")
-        print(final)
-        return list(final.keys())
+    try:
+        if once_noFHD == True and nFHDimagespercent < 0.3:
+            threshold = max(imginfo.values()) -102400
+            final = {k: v for k, v in imginfo.items() if v >= threshold}
+            print("最终筛选结果：")
+            print(final)
+            return list(final.keys())
+    except ValueError as ve:
+        # print("{folder_path}目录潜在问题：没有大尺寸基底图片！")
+
+        return None
 
     # 返回结果
     return FHDimages
@@ -229,6 +234,8 @@ def main(forlder_name:str,batch='n'):
     # 批量处理模式
     elif batch=='y':
         pnglist = batch_get_base_image_name(folder_name)
+        if pnglist ==None:
+            print("{folder_name}目录潜在问题：没有大尺寸基底图片！")
         for i in pnglist:
             base_image_path, json_path = get_base_image_and_json_path(folder_name, i,batch='y')
             if base_image_path and json_path:
