@@ -72,7 +72,9 @@ def process_images(base_image_path, json_path):
         # result_image_name = f"{os.path.splitext(os.path.basename(base_image_path))[0]}+{os.path.splitext(diff_image_name)[0]}.png" # 保存为"base+diff"的形式
         result_image_name = f"{os.path.splitext(diff_image_name)[0]}.png" # 保存为差分图片的文件名
         result_image_path = os.path.join(result_subdir, result_image_name)
-
+        if os.path.exists(result_image_path):
+            print(f"结果图片 {result_image_name} 已存在，跳过处理")
+            continue
         # 保存结果图片时指定压缩质量为 100（最高质量）
         result_image.save(result_image_path, quality=100)
 
@@ -234,12 +236,14 @@ def main(forlder_name:str,batch='n'):
     # 批量处理模式
     elif batch=='y':
         pnglist = batch_get_base_image_name(folder_name)
+        if pnglist !=None:
+            for i in pnglist:
+                base_image_path, json_path = get_base_image_and_json_path(folder_name, i,batch='y')
+                if base_image_path and json_path:
+                    process_images(base_image_path, json_path)
         if pnglist ==None:
-            print("{folder_name}目录潜在问题：没有大尺寸基底图片！")
-        for i in pnglist:
-            base_image_path, json_path = get_base_image_and_json_path(folder_name, i,batch='y')
-            if base_image_path and json_path:
-                process_images(base_image_path, json_path)
+            print("{folder_name}目录潜在问题：没有大尺寸基底图片！".format(folder_name=folder_name))
+            return forlder_name
     
 
 
@@ -249,7 +253,11 @@ if __name__ == "__main__":
         # 获取当前目录下的子文件夹列表（evXXXa or evXXX_a）
         subfolders = [f.path for f in os.scandir('.\\source') if f.is_dir()]    
         print("待处理文件夹列表："+str(subfolders))
+        bugfolders = []
         for folder in subfolders:
-            main(folder,batch='y')
+            path = main(folder,batch='y')
+            if path != None:
+                bugfolders.append(path)
+        print("处理完成，存在潜在问题的文件夹有："+str(bugfolders))
     else:
          main(str(input("请输入文件夹名称：")))
